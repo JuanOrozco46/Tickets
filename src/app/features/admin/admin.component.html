@@ -1,0 +1,12 @@
+<div class="admin-container">
+  <header class="header">
+    <h1>Panel de Administración</h1>
+    <div class="user-info" *ngIf="currentUser$ | async as user">
+      <span>Admin: <strong>{{ user.name || user.email }}</strong></span>
+      <button (click)="logout()">Cerrar Sesión</button>
+    </div>
+  </header>
+  <main class="content">
+    <p>Gestión avanzada de tickets y usuarios.</p>
+  </main>
+</div>
