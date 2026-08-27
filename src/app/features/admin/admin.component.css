@@ -1,23 +1,77 @@
-.admin-container {
-  padding: 2rem;
+.admin-layout {
+  padding: 1.5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
 }
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 1rem;
+
+.admin-header {
+  margin-bottom: 1.5rem;
 }
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+
+.admin-header h2 {
+  margin: 0;
+  color: #2c3e50;
 }
-button {
-  padding: 0.5rem 1rem;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
+
+.subtitle {
+  margin: 0.2rem 0 0 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.users-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.users-table th, .users-table td {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #f1f2f6;
+}
+
+.users-table th {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.badge {
+  padding: 0.25rem 0.6rem;
   border-radius: 4px;
-  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.role-badge.admin { background-color: #ffebee; color: #c62828; }
+.role-badge.agent { background-color: #fff3e0; color: #ef6c00; }
+.role-badge.client { background-color: #e8f5e9; color: #2e7d32; }
+
+.role-select {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.alert {
+  padding: 0.8rem 1.2rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.alert-success { background-color: #d4edda; color: #155724; }
+.alert-danger { background-color: #f8d7da; color: #721c24; }
+
+.loading-spinner, .empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #7f8c8d;
 }

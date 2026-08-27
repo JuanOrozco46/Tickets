@@ -1,5 +1,6 @@
-import { Component, inject } from '@angular/core';
-import { AuthService } from '../../core/services/auth.service';
+import { Component, OnInit, inject } from '@angular/core';
+import { UsersService } from '../../core/services/users.service';
+import { User, UserRole } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-admin',
@@ -7,11 +8,51 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
-export class AdminComponent {
-  authService = inject(AuthService);
-  currentUser$ = this.authService.currentUser$;
+export class AdminComponent implements OnInit {
+  private usersService = inject(UsersService);
 
-  logout(): void {
-    this.authService.logout();
+  users: User[] = [];
+  loading = false;
+  errorMessage: string | null = null;
+  successMessage: string | null = null;
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.loading = true;
+    this.errorMessage = null;
+
+    this.usersService.getUsers().subscribe({
+      next: (data) => {
+        this.loading = false;
+        this.users = data || [];
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || 'Error al cargar la lista de usuarios.';
+      }
+    });
+  }
+
+  onRoleChange(user: User, newRole: string): void {
+    this.usersService.updateUserRole(user.id, newRole as UserRole).subscribe({
+      next: (updatedUser) => {
+        user.role = updatedUser.role || (newRole as UserRole);
+        this.showSuccess(`Rol de ${user.email} actualizado a ${newRole.toUpperCase()}.`);
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Error al actualizar el rol del usuario.');
+        this.loadUsers();
+      }
+    });
+  }
+
+  private showSuccess(msg: string): void {
+    this.successMessage = msg;
+    setTimeout(() => {
+      this.successMessage = null;
+    }, 3000);
   }
 }

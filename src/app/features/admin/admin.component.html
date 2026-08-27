@@ -1,12 +1,56 @@
-<div class="admin-container">
-  <header class="header">
-    <h1>Panel de Administración</h1>
-    <div class="user-info" *ngIf="currentUser$ | async as user">
-      <span>Admin: <strong>{{ user.name || user.email }}</strong></span>
-      <button (click)="logout()">Cerrar Sesión</button>
+<app-navbar></app-navbar>
+
+<div class="admin-layout">
+  <div class="admin-header">
+    <h2>Gestión de Usuarios y Roles</h2>
+    <p class="subtitle">Panel exclusivo para administradores del sistema</p>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div class="users-container">
+    <div *ngIf="loading" class="loading-spinner">
+      Cargando usuarios...
     </div>
-  </header>
-  <main class="content">
-    <p>Gestión avanzada de tickets y usuarios.</p>
-  </main>
+
+    <table *ngIf="!loading && users.length > 0" class="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Correo Electrónico</th>
+          <th>Rol Actual</th>
+          <th>Cambiar Rol</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td class="user-id">#{{ user.id.substring(0, 8) }}</td>
+          <td><strong>{{ user.name || 'Sin Nombre' }}</strong></td>
+          <td>{{ user.email }}</td>
+          <td>
+            <span class="badge role-badge" [ngClass]="user.role">
+              {{ user.role | uppercase }}
+            </span>
+          </td>
+          <td>
+            <select class="role-select" [value]="user.role" (change)="onRoleChange(user, $any($event.target).value)">
+              <option value="client">CLIENTE</option>
+              <option value="agent">AGENTE</option>
+              <option value="admin">ADMINISTRADOR</option>
+            </select>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="!loading && users.length === 0" class="empty-state">
+      No se encontraron usuarios registrados.
+    </div>
+  </div>
 </div>

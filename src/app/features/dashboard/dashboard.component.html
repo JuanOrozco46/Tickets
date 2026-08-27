@@ -1,12 +1,214 @@
-<div class="dashboard-container">
-  <header class="header">
-    <h1>Dashboard de Tickets</h1>
-    <div class="user-info" *ngIf="currentUser$ | async as user">
-      <span>Bienvenido, <strong>{{ user.name || user.email }}</strong> ({{ user.role }})</span>
-      <button (click)="logout()">Cerrar Sesión</button>
+<app-navbar></app-navbar>
+
+<div class="dashboard-layout">
+  <!-- Top Banner & Actions -->
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <h2>Gestión de Tickets</h2>
+      <p class="subtitle">Panel de atención y soporte técnico</p>
     </div>
-  </header>
-  <main class="content">
-    <p>Bienvenido al sistema de gestión de tickets.</p>
-  </main>
+
+    <div class="header-actions">
+      <button *ngIf="currentUser?.role === 'client' || currentUser?.role === 'admin'" class="btn-primary" (click)="openCreateModal()">
+        + Crear Nuevo Ticket
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Filters & Search Bar -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <input type="text" [(ngModel)]="searchQuery" (input)="applyFilters()" placeholder="Buscar ticket por título o descripción...">
+    </div>
+
+    <div class="filters-group">
+      <div class="filter-item">
+        <label>Estado:</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="">Todos los Estados</option>
+          <option value="open">Abierto (Open)</option>
+          <option value="in_progress">En Progreso (In Progress)</option>
+          <option value="resolved">Resuelto (Resolved)</option>
+          <option value="closed">Cerrado (Closed)</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label>Prioridad:</label>
+        <select [(ngModel)]="selectedPriority" (change)="applyFilters()">
+          <option value="">Todas las Prioridades</option>
+          <option value="low">Baja (Low)</option>
+          <option value="medium">Media (Medium)</option>
+          <option value="high">Alta (High)</option>
+          <option value="urgent">Urgente (Urgent)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tickets Table / Grid -->
+  <div class="tickets-container">
+    <div *ngIf="loading" class="loading-spinner">
+      Cargando tickets...
+    </div>
+
+    <div *ngIf="!loading && filteredTickets.length === 0" class="empty-state">
+      <p>No se encontraron tickets con los criterios seleccionados.</p>
+    </div>
+
+    <table *ngIf="!loading && filteredTickets.length > 0" class="tickets-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Título</th>
+          <th>Prioridad</th>
+          <th>Estado</th>
+          <th>Agente Asignado</th>
+          <th>Fecha Creación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ticket of filteredTickets" [class.selected]="selectedTicket?.id === ticket.id">
+          <td class="ticket-id">#{{ ticket.id.substring(0, 8) }}</td>
+          <td class="ticket-title">
+            <strong>{{ ticket.title }}</strong>
+            <p class="description-preview">{{ ticket.description | slice:0:60 }}...</p>
+          </td>
+          <td>
+            <span class="badge priority-badge" [ngClass]="ticket.priority">
+              {{ ticket.priority | uppercase }}
+            </span>
+          </td>
+          <td>
+            <select class="status-select" [value]="ticket.status" (change)="onUpdateStatus(ticket, $any($event.target).value)">
+              <option value="open">ABIERTO</option>
+              <option value="in_progress">EN PROGRESO</option>
+              <option value="resolved">RESUELTO</option>
+              <option value="closed">CERRADO</option>
+            </select>
+          </td>
+          <td>
+            <ng-container *ngIf="currentUser?.role === 'admin'; else readonlyAgent">
+              <select class="agent-select" [value]="ticket.agentId || ''" (change)="onAssignAgent(ticket, $any($event.target).value)">
+                <option value="">Sin Asignar</option>
+                <option *ngFor="let agent of agents" [value]="agent.id">
+                  {{ agent.name || agent.email }}
+                </option>
+              </select>
+            </ng-container>
+            <ng-template #readonlyAgent>
+              <span class="agent-name">{{ ticket.agentId ? 'Asignado' : 'Sin Asignar' }}</span>
+            </ng-template>
+          </td>
+          <td>{{ ticket.createdAt | date:'short' }}</td>
+          <td>
+            <button class="btn-secondary" (click)="selectTicket(ticket)">Ver Detalle</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Crear Ticket -->
+<div *ngIf="showCreateModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Crear Nuevo Ticket</h3>
+      <button class="close-btn" (click)="closeCreateModal()">✕</button>
+    </div>
+
+    <form [formGroup]="createTicketForm" (ngSubmit)="onCreateTicket()">
+      <div class="form-group">
+        <label>Título / Asunto</label>
+        <input type="text" formControlName="title" placeholder="Ej. Fallo en inicio de sesión">
+        <small *ngIf="createTicketForm.get('title')?.touched && createTicketForm.get('title')?.invalid" class="field-error">
+          El título es requerido (mínimo 4 caracteres)
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Prioridad</label>
+        <select formControlName="priority">
+          <option value="low">Baja</option>
+          <option value="medium">Media</option>
+          <option value="high">Alta</option>
+          <option value="urgent">Urgente</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción del Problema</label>
+        <textarea rows="4" formControlName="description" placeholder="Describa en detalle el problema presentado..."></textarea>
+        <small *ngIf="createTicketForm.get('description')?.touched && createTicketForm.get('description')?.invalid" class="field-error">
+          La descripción es requerida (mínimo 10 caracteres)
+        </small>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeCreateModal()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="createTicketForm.invalid">Guardar Ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal / Panel Detalle del Ticket & Comentarios -->
+<div *ngIf="selectedTicket" class="modal-backdrop">
+  <div class="modal-card detail-modal">
+    <div class="modal-header">
+      <div>
+        <h3>Ticket #{{ selectedTicket.id.substring(0, 8) }}</h3>
+        <span class="badge priority-badge" [ngClass]="selectedTicket.priority">{{ selectedTicket.priority | uppercase }}</span>
+        <span class="badge status-badge" [ngClass]="selectedTicket.status">{{ selectedTicket.status | uppercase }}</span>
+      </div>
+      <button class="close-btn" (click)="closeTicketDetail()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ticket-info-section">
+        <h4>{{ selectedTicket.title }}</h4>
+        <p class="full-description">{{ selectedTicket.description }}</p>
+        <div class="ticket-meta">
+          <span>Creado: {{ selectedTicket.createdAt | date:'medium' }}</span>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="comments-section">
+        <h4>Historial de Comentarios</h4>
+        <div *ngIf="loadingComments" class="loading-spinner">Cargando comentarios...</div>
+
+        <div *ngIf="!loadingComments && ticketComments.length === 0" class="no-comments">
+          No hay comentarios registrados en este ticket.
+        </div>
+
+        <div *ngIf="!loadingComments && ticketComments.length > 0" class="comments-list">
+          <div *ngFor="let comment of ticketComments" class="comment-card">
+            <div class="comment-header">
+              <strong>{{ comment.userName || 'Usuario' }}</strong>
+              <span class="comment-date">{{ comment.createdAt | date:'short' }}</span>
+            </div>
+            <p class="comment-message">{{ comment.message }}</p>
+          </div>
+        </div>
+
+        <!-- Agregar Comentario -->
+        <div class="add-comment-box">
+          <textarea [(ngModel)]="newCommentMessage" rows="2" placeholder="Escriba un comentario o respuesta..."></textarea>
+          <button class="btn-primary" (click)="onAddComment()" [disabled]="!newCommentMessage.trim()">Enviar Comentario</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
