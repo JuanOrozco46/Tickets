@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Ticket, Comment, TicketStatus, TicketPriority } from '../models/ticket.model';
 
@@ -44,30 +44,44 @@ export class TicketsService {
       if (filters.page) params = params.set('page', filters.page.toString());
       if (filters.limit) params = params.set('limit', filters.limit.toString());
     }
-    return this.http.get<Ticket[]>(this.apiUrl, { params });
+    return this.http.get<any>(this.apiUrl, { params }).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   getTicketById(id: string): Observable<Ticket> {
-    return this.http.get<Ticket>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   createTicket(payload: CreateTicketPayload): Observable<Ticket> {
-    return this.http.post<Ticket>(this.apiUrl, payload);
+    return this.http.post<any>(this.apiUrl, payload).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   updateTicket(id: string, payload: UpdateTicketPayload): Observable<Ticket> {
-    return this.http.put<Ticket>(`${this.apiUrl}/${id}`, payload);
+    return this.http.patch<any>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   assignAgent(ticketId: string, agentId: string): Observable<Ticket> {
-    return this.http.put<Ticket>(`${this.apiUrl}/${ticketId}`, { agentId });
+    return this.http.post<any>(`${this.apiUrl}/${ticketId}/assign`, { agentId }).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   getComments(ticketId: string): Observable<Comment[]> {
-    return this.http.get<Comment[]>(`${this.apiUrl}/${ticketId}/comments`);
+    return this.http.get<any>(`${this.apiUrl}/${ticketId}/comments`).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 
   addComment(ticketId: string, message: string): Observable<Comment> {
-    return this.http.post<Comment>(`${this.apiUrl}/${ticketId}/comments`, { message });
+    return this.http.post<any>(`${this.apiUrl}/${ticketId}/comments`, { body: message }).pipe(
+      map((res: any) => res?.data ?? res)
+    );
   }
 }

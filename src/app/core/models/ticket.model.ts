@@ -4,9 +4,16 @@ export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 export interface Comment {
   id: string;
   ticketId: string;
-  userId: string;
+  userId?: string;
+  authorId?: string;
   userName?: string;
-  message: string;
+  author?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  message?: string;
+  body?: string;
   createdAt: string;
 }
 
@@ -16,8 +23,10 @@ export interface Ticket {
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
-  clientId: string;
+  clientId?: string;
+  createdBy?: string;
   agentId?: string | null;
+  assignedTo?: string | null;
   createdAt: string;
   updatedAt: string;
 }

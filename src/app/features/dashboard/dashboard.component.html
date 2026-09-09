@@ -98,7 +98,7 @@
           </td>
           <td>
             <ng-container *ngIf="currentUser?.role === 'admin'; else readonlyAgent">
-              <select class="agent-select" [value]="ticket.agentId || ''" (change)="onAssignAgent(ticket, $any($event.target).value)">
+              <select class="agent-select" [value]="ticket.agentId || ticket.assignedTo || ''" (change)="onAssignAgent(ticket, $any($event.target).value)">
                 <option value="">Sin Asignar</option>
                 <option *ngFor="let agent of agents" [value]="agent.id">
                   {{ agent.name || agent.email }}
@@ -106,7 +106,7 @@
               </select>
             </ng-container>
             <ng-template #readonlyAgent>
-              <span class="agent-name">{{ ticket.agentId ? 'Asignado' : 'Sin Asignar' }}</span>
+              <span class="agent-name">{{ (ticket.agentId || ticket.assignedTo) ? 'Asignado' : 'Sin Asignar' }}</span>
             </ng-template>
           </td>
           <td>{{ ticket.createdAt | date:'short' }}</td>
@@ -196,10 +196,10 @@
         <div *ngIf="!loadingComments && ticketComments.length > 0" class="comments-list">
           <div *ngFor="let comment of ticketComments" class="comment-card">
             <div class="comment-header">
-              <strong>{{ comment.userName || 'Usuario' }}</strong>
+              <strong>{{ comment.userName || comment.author?.name || 'Usuario' }}</strong>
               <span class="comment-date">{{ comment.createdAt | date:'short' }}</span>
             </div>
-            <p class="comment-message">{{ comment.message }}</p>
+            <p class="comment-message">{{ comment.message || comment.body }}</p>
           </div>
         </div>
 

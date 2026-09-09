@@ -50,6 +50,10 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getUserFromStorage();
+    this.currentUser$.subscribe(user => {
+      this.currentUser = user || this.authService.getUserFromStorage();
+      this.applyFilters();
+    });
     this.loadTickets();
     if (this.currentUser?.role === 'admin') {
       this.loadAgents();
@@ -61,9 +65,10 @@ export class DashboardComponent implements OnInit {
     this.errorMessage = null;
 
     this.ticketsService.getTickets().subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.loading = false;
-        this.tickets = data || [];
+        const list = Array.isArray(data) ? data : data?.data || [];
+        this.tickets = Array.isArray(list) ? list : [];
         this.applyFilters();
       },
       error: (err) => {
@@ -75,21 +80,32 @@ export class DashboardComponent implements OnInit {
 
   loadAgents(): void {
     this.usersService.getAgents().subscribe({
-      next: (data) => {
-        this.agents = data || [];
+      next: (data: any) => {
+        const list = Array.isArray(data) ? data : data?.data || [];
+        this.agents = Array.isArray(list) ? list : [];
       },
       error: () => {}
     });
   }
 
   applyFilters(): void {
-    let result = [...this.tickets];
+    let result = Array.isArray(this.tickets) ? [...this.tickets] : [];
 
     // Filter by role view rules if backend returns all
     if (this.currentUser?.role === 'client') {
-      result = result.filter(t => t.clientId === this.currentUser?.id);
+      const uId = this.currentUser?.id;
+      const uEmail = this.currentUser?.email;
+      result = result.filter(t => {
+        const creator = t.clientId || t.createdBy || (t as any).userId;
+        return creator === uId || creator === uEmail;
+      });
     } else if (this.currentUser?.role === 'agent') {
-      result = result.filter(t => t.agentId === this.currentUser?.id || !t.agentId);
+      const uId = this.currentUser?.id;
+      const uEmail = this.currentUser?.email;
+      result = result.filter(t => {
+        const agent = t.agentId || t.assignedTo;
+        return !agent || agent === uId || agent === uEmail;
+      });
     }
 
     if (this.selectedStatus) {
@@ -133,8 +149,12 @@ export class DashboardComponent implements OnInit {
     };
 
     this.ticketsService.createTicket(payload).subscribe({
-      next: (newTicket) => {
-        this.tickets.unshift(newTicket);
+      next: (newTicket: any) => {
+        const ticketObj = newTicket?.data || newTicket;
+        if (!Array.isArray(this.tickets)) {
+          this.tickets = [];
+        }
+        this.tickets.unshift(ticketObj);
         this.applyFilters();
         this.closeCreateModal();
         this.showSuccess('Ticket creado exitosamente.');
@@ -158,9 +178,10 @@ export class DashboardComponent implements OnInit {
   loadComments(ticketId: string): void {
     this.loadingComments = true;
     this.ticketsService.getComments(ticketId).subscribe({
-      next: (comments) => {
+      next: (comments: any) => {
         this.loadingComments = false;
-        this.ticketComments = comments || [];
+        const list = Array.isArray(comments) ? comments : comments?.data || [];
+        this.ticketComments = Array.isArray(list) ? list : [];
       },
       error: () => {
         this.loadingComments = false;
@@ -173,8 +194,12 @@ export class DashboardComponent implements OnInit {
     if (!this.newCommentMessage.trim() || !this.selectedTicket) return;
 
     this.ticketsService.addComment(this.selectedTicket.id, this.newCommentMessage.trim()).subscribe({
-      next: (newComment) => {
-        this.ticketComments.push(newComment);
+      next: (newComment: any) => {
+        const commentObj = newComment?.data || newComment;
+        if (!Array.isArray(this.ticketComments)) {
+          this.ticketComments = [];
+        }
+        this.ticketComments.push(commentObj);
         this.newCommentMessage = '';
       },
       error: (err) => {
@@ -185,8 +210,9 @@ export class DashboardComponent implements OnInit {
 
   onUpdateStatus(ticket: Ticket, newStatus: string): void {
     this.ticketsService.updateTicket(ticket.id, { status: newStatus as TicketStatus }).subscribe({
-      next: (updated) => {
-        ticket.status = updated.status;
+      next: (updated: any) => {
+        const updatedObj = updated?.data || updated;
+        ticket.status = updatedObj.status || newStatus;
         this.applyFilters();
         this.showSuccess('Estado actualizado.');
       },
@@ -198,8 +224,10 @@ export class DashboardComponent implements OnInit {
 
   onAssignAgent(ticket: Ticket, agentId: string): void {
     this.ticketsService.assignAgent(ticket.id, agentId).subscribe({
-      next: (updated) => {
-        ticket.agentId = updated.agentId;
+      next: (updated: any) => {
+        const updatedObj = updated?.data || updated;
+        ticket.agentId = updatedObj.agentId || updatedObj.assignedTo || agentId;
+        ticket.assignedTo = updatedObj.assignedTo || updatedObj.agentId || agentId;
         this.applyFilters();
         this.showSuccess('Agente asignado.');
       },

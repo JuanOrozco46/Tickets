@@ -25,9 +25,10 @@ export class AdminComponent implements OnInit {
     this.errorMessage = null;
 
     this.usersService.getUsers().subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.loading = false;
-        this.users = data || [];
+        const list = Array.isArray(data) ? data : data?.data || [];
+        this.users = Array.isArray(list) ? list : [];
       },
       error: (err) => {
         this.loading = false;
@@ -38,8 +39,9 @@ export class AdminComponent implements OnInit {
 
   onRoleChange(user: User, newRole: string): void {
     this.usersService.updateUserRole(user.id, newRole as UserRole).subscribe({
-      next: (updatedUser) => {
-        user.role = updatedUser.role || (newRole as UserRole);
+      next: (updatedUser: any) => {
+        const userObj = updatedUser?.data || updatedUser;
+        user.role = userObj.role || (newRole as UserRole);
         this.showSuccess(`Rol de ${user.email} actualizado a ${newRole.toUpperCase()}.`);
       },
       error: (err) => {
